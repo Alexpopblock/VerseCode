@@ -1,0 +1,21 @@
+using { /UnrealEngine.com/Temporary/SpatialMath }
+using { /Fortnite.com/Devices }
+using { /Fortnite.com/Characters }
+using { /Verse.org/Simulation }
+DecoyDevice:=class<unique>{
+    var MyPos:vector3=vector3{}
+    var Master:agent
+    var MyProp:creative_prop = creative_prop{}
+    Initiate(MyPropa:creative_prop,Agent:agent):void=
+        set MyPos = MyPropa.GetTransform().Translation
+        set Master = Agent 
+        set MyProp = MyPropa
+        return;
+    DoExplodePower(Explosive:explosive_device)<suspends>:void=
+        {
+            if(Explosive.TeleportTo[MyPos,IdentityRotation()]){}else{"Failed to teleport explosive"}
+            Explosive.Explode(Master)
+        }
+}
+OutcomeType:=enum{Item,ExplosiveDecoy}
+Decoys:=enum{Explosive}
