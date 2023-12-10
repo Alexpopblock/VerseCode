@@ -1,0 +1,42 @@
+
+using { /Fortnite.com/Devices }
+using { /Verse.org/Simulation }
+using { /UnrealEngine.com/Temporary/Diagnostics }
+
+CollectibleItems := class(creative_device):
+
+    @editable AllCollectibles:[]collectible_object_device = array{}
+    @editable DecoyMan:DecoyManager = DecoyManager{}
+    @editable ItemGranter:item_granter_device = item_granter_device{}
+    @editable LootMap:[]OutcomeType = array{}
+    var RNGmap:[int]int = map{}
+    
+    OnBegin<override>()<suspends>:void={
+
+        for(collect:AllCollectibles){
+            collect.CollectedEvent.Subscribe(ChooseOutcome)
+        }
+    }
+    ChooseOutcome(Agent:agent):void={
+        Print("Choosing outcome")
+        if:
+            Outcomea:?OutcomeType=LootMap.GetRandomObject()
+            Outcome:OutcomeType = Outcomea?
+        then:
+            case(Outcome):
+                OutcomeType.Item=>
+                    ItemGranter.CycleToRandomItem(Agent)
+                    ItemGranter.GrantItem(Agent)
+                OutcomeType.ExplosiveDecoy=>
+                    Print("Explosive Decoy")
+                    if(DecoyMan.DecoyResource[Agent] = true){
+                        ChooseOutcome(Agent)
+                        Print("Has Explosive")
+                    }
+                    else{
+                        DecoyMan.PickupItem(Agent)
+                        Print("Gets Explosive")
+                    }
+        else:
+            Print("Failed to get random object")
+    }
