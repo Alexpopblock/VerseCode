@@ -1,0 +1,95 @@
+
+using { /Fortnite.com/Game }
+using { /Fortnite.com/Devices }
+using { /Fortnite.com/Characters }
+using { /Verse.org/Simulation }
+using { /UnrealEngine.com/Temporary/Diagnostics }
+using { /UnrealEngine.com/Temporary/SpatialMath }
+
+DecoyManager := class(creative_device):
+
+    var AllDecoyDevices : []DecoyDevice = array{}
+    var DecoyResource: [agent]logic = map{} 
+    PickupGameEvent:event(agent) = event(agent){}
+    var GameEnded:logic = false
+
+    @editable GameEndTimer:timer_device = timer_device{}
+    @editable ProximityRangeOfDecoy:float = 0.0
+    @editable DecoyOffsetHeight:float=0.0
+    @editable DecoyProps:[]creative_prop_asset = array{}
+    @editable explosiveDevice:explosive_device = explosive_device{}
+    @editable PickupMessage:hud_message_device = hud_message_device{}
+    
+
+    @editable ButtonToPickup:button_device = button_device{}
+    OnBegin<override>()<suspends>:void=  
+        Playspace:=GetPlayspace()
+        for(Player:Playspace.GetPlayers()){
+            PlayerSpawned(Player)
+        }
+        Playspace.PlayerAddedEvent().Subscribe(PlayerSpawned)
+        ButtonToPickup.InteractedWithEvent.Subscribe(PickupItem)
+        GameEndTimer.SuccessEvent.SubscribeWithoutAgent(GameHasEnded)
+        loop:
+            AllPlayers:=Playspace.GetPlayers()
+            for(decoy:AllDecoyDevices){
+                for(Player:AllPlayers){
+                    if(agent(Player) <> decoy.Master){
+                        if(Char:=Player.GetFortCharacter[]){
+                            if(DistanceSquared(Char.GetTransform().Translation,decoy.MyPos)<=ProximityRangeOfDecoy*ProximityRangeOfDecoy){
+                                spawn{decoy.DoExplodePower(explosiveDevice)}
+                                decoy.MyProp.Dispose()
+                                if(set AllDecoyDevices = AllDecoyDevices.RemoveFirstElement[decoy]){}
+                                explosiveDevice.Reset()
+                            }
+                        }
+                    }
+                }
+            }
+            if(GameEnded?){
+                break;
+            }
+            Sleep(0.2)
+    
+
+    GameHasEnded():void=
+        set GameEnded = true
+    PickupItem(Agent:agent):void=
+        if(set DecoyResource[Agent] = true){
+            PickupMessage.Show(Agent)
+            spawn{ItemPickedUp()}
+        }
+        
+    ItemPickedUp()<suspends>:void=
+        Print("Item Picked Up") #UPDATE UI
+
+    PlayerSpawned(Agent:agent):void=
+        Print("PLAYER SPAWNED")
+        if(set DecoyResource[Agent] = false){}
+        if(Char:=Agent.GetFortCharacter[]){
+            Char.CrouchedEvent().Subscribe(Crouched)
+            Print("GotPlayer")
+        }
+    Crouched(Char:fort_character,Success:logic):void=
+        Print("Testing")
+        if:
+            Success?
+            Agent:=Char.GetAgent[]
+            DecoyResource[Agent] = true
+            var SpawnLocation:vector3=Char.GetTransform().Translation
+        then:
+            set SpawnLocation = vector3{X:=SpawnLocation.X,Y:=SpawnLocation.Y,Z:=SpawnLocation.Z+DecoyOffsetHeight}
+            if(set DecoyResource[Agent] = false){}
+            Decoy:DecoyDevice = DecoyDevice{Master:=Agent,MyPos:=SpawnLocation}
+            set AllDecoyDevices = AllDecoyDevices + array{Decoy}
+            
+            if(ProptoSpawn:creative_prop_asset=DecoyProps.GetRandomObject()?){
+                if(Prop:creative_prop=SpawnProp(ProptoSpawn,SpawnLocation,IdentityRotation())(0)?){
+                    Decoy.Initiate(Prop,Agent)
+                }
+            }
+            else{
+                Print("Failed to get asset")
+            }
+        Print("Done")
+        return;
