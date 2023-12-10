@@ -1,0 +1,24 @@
+using { /Fortnite.com/Characters }
+using { /Fortnite.com/Devices }
+using { /Verse.org/Simulation }
+using { /Verse.org/Random }
+using { /UnrealEngine.com/Temporary/Diagnostics }
+
+(ListenTo:listenable(?agent)).SubscribeWithoutAgent(FuncToRun:tuple()->void):void=
+    X:=NoAgentWrapper(){ListenTo:=ListenTo,FuncToRun:=FuncToRun}
+    X.ListenTo.Subscribe(X.DoThing)
+NoAgentWrapper():=class:
+    ListenTo:listenable(?agent)
+    FuncToRun:tuple()->void
+    DoThing(A:?agent):void=
+        FuncToRun()
+            
+(arr:[]t where t:type).GetRandomObject()<transacts>:(?t)={
+    lenarr:int = arr.Length
+    thing:int=GetRandomInt(0,lenarr-1)
+    if(sh:t=arr[thing]){
+        return option{sh}
+    }    
+    return false
+}
+    
